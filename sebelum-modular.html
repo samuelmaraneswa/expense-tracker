@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <!-- tailwind & font awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <!-- sweet alert -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    table thead th,table tbody td{
+      padding: 8px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body class="p-6">
+
+  <div class="bg-gray-200 rounded-lg">
+    <!-- header start -->
+     <div class="flex flex-col md:flex-row items-start md:items-center gap-[6px] p-2">
+      
+      <!-- title & add start -->
+      <div class="relative inline-flex items-center pr-8 rounded-xl">
+        <h1 class="text-base md:text-lg">Expense Tracker</h1>
+        <i id="addData" class="text-lg fa-solid fa-plus absolute top-1/2 -translate-y-1/2 right-[6px] cursor-pointer"></i>
+      </div>
+      <!-- title & add end-->
+
+      <!-- search form start -->
+      <div id="searchWrapper" class="flex relative flex-1 bg-amber-200 w-full">
+        <input id="inputSearch" type="text" class="text-sm md:text-base w-full py-1 px-2 pr-[50px] focus:outline-none rounded" enterkeyhint="search" autocomplete="off">
+        
+        <i id="xSearch" class="fa-solid fa-x text-xs text-red-500 absolute right-[30px] top-1/2 -translate-y-1/2 cursor-pointer hidden"></i>
+        
+        <i class="fas fa-search text-gray-500 absolute top-1/2 -translate-y-1/2 cursor-pointer right-[6px]"></i>
+
+        <div id="suggestions" class="absolute max-h-[350px] overflow-y-auto top-full bg-gray-100 w-full mt-0.5 rounded hidden z-10">
+          <ul></ul>
+        </div>
+      </div>
+      <!-- search form end -->
+
+      <select name="" id="select" class="text-sm md:text-base py-1 px-2 rounded cursor-pointer">
+        <option value="">--Pilih Category--</option>
+      </select>
+
+     </div>
+    <!-- header end -->
+
+    <!-- empty data text start -->
+     <div id="emptyMessage" class="py-1 px-2"></div>
+    <!-- empty data text end -->
+
+    <!-- table start -->
+     <div id="tableWrapper" class="w-full overflow-hidden mt-4 rounded-lg p-2 overflow-x-auto">
+      <table class="w-full text-sm bg-white">
+        <thead class="bg-indigo-500 text-white">
+          <tr>
+            <th>No</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th class="">Action</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyData"></tbody>
+      </table>
+     </div>
+    <!-- table end -->
+
+    <!-- pagination start -->
+     <div id="pagination" class="mt-4 flex items-center justify-center gap-5"></div>
+    <!-- pagination end -->
+
+    <!-- Total start -->
+     <p id="totalExpensesText" class="p-2">Total Expenses: Rp <span id="totalExpenses">0</span></p>
+    <!-- Total end -->
+
+    <!-- modal addData start -->
+     <div id="modalAddData" class="fixed flex items-start justify-center inset-0 bg-black/60 opacity-0 pointer-events-none transition-opacity duration-300 p-4 md:p-0">
+
+       <div id="modalContent" class="relative bg-white mt-12 px-12 md:px-16 py-4 md:py-8 rounded-lg w-[750px] transform scale-95 transition-transform  duration-300">
+
+        <i class="fa-solid fa-x absolute bg-black text-white rounded-full text-sm cursor-pointer flex items-center justify-center px-3.5 py-1 -top-[13px] -right-[13px]"></i>
+
+        <div class="flex flex-col">
+          <div class="">
+            <h2 id="modalAddTitle">Add Expense</h2>
+            <hr class="border border-black mt-2">
+          </div>
+
+          <div class="mt-4 flex flex-col space-y-2">
+            <label for="name">Name:</label>
+            <input id="name" type="text" placeholder="Coffee" class="border border-gray-300 focus:outline-none px-2 py-1 rounded" autocomplete="off">
+            <p id="text-error-name" class="italic text-xs text-red-500"></p>
+            
+            <label for="category">Category:</label>
+            <input id="category" type="text" placeholder="Food" class="border border-gray-300 focus:outline-none px-2 py-1 rounded" autocomplete="off">
+            <p id="text-error-category" class="italic text-xs text-red-500"></p>
+            
+            <label for="amount">Amount:</label>
+            <input id="amount" type="text" placeholder="300.000" class="border border-gray-300 focus:outline-none px-2 py-1 rounded" autocomplete="off">
+            <p id="text-error-amount" class="italic text-xs text-red-500"></p>
+            
+            <button id="saveBtn" class="bg-indigo-500 text-white px-2 py-1 !mt-6 mx-auto rounded hover:bg-indigo-700">Save</button>
+          </div>
+        </div>
+      </div>
+     </div>
+    <!-- modal addData end -->
+  </div>
+
+  <script>
+    const searchWrapper = document.getElementById("searchWrapper")
+    const tableWrapper = document.getElementById("tableWrapper")
+    const totalExpenseText = document.getElementById("totalExpensesText")
+    const totalExpenses = document.getElementById("totalExpenses")
+    const select = document.getElementById("select")
+    const emptyMessage = document.getElementById("emptyMessage")
+    
+    const addData = document.getElementById("addData")
+    const modalAddData = document.getElementById("modalAddData")
+    const modalContent = document.getElementById("modalContent")
+    const xmodalAddData = modalAddData.querySelector(".fa-x") ?? null
+
+    const saveBtn = document.getElementById("saveBtn")
+    
+    const name = document.getElementById("name")
+    const amount = document.getElementById("amount")
+    const category = document.getElementById("category")
+    const modalAddTitle = document.getElementById("modalAddTitle")
+
+    const tbodyData = document.getElementById("tbodyData")
+
+    const inputSearch = document.getElementById("inputSearch")
+    const suggestions = document.getElementById("suggestions")
+    const ul = suggestions.querySelector("ul") ?? null;
+    const xSearch = document.getElementById("xSearch")
+    const searchIcon = searchWrapper.querySelector(".fa-search") ?? null;
+
+    const pagination = document.getElementById("pagination")
+
+    let state = {
+      expenses:[]
+    }
+
+    let uiState = {
+      keyword: "",
+      category: "",
+      page: 1,
+      limit: 5
+    }
+
+    let rawAmount = ""
+    let error = {}
+    let mode;
+    let editId;
+    let activeIndex = -1
+    let lastAddedId = null;
+    let addTimeOut = null
+    let editTimeOut = null
+    let lastEditId = null
+
+    function loadDataFromLS(currentState)
+    {
+      let expensesLocal = JSON.parse(localStorage.getItem("expenses"))
+      if(expensesLocal)
+      {
+        return{
+          ...currentState,
+          expenses: expensesLocal.expenses
+        }
+      }else{
+        return currentState
+      }
+    }
+
+    amount.addEventListener("input", (e) => {
+      let value = e.target.value.replace(/\D/g, "")
+      rawAmount = value;
+      e.target.value = new Intl.NumberFormat("id-ID").format(value)
+    })
+
+    function renderEmptyState()
+    {
+      emptyMessage.innerHTML = `<p class="italic text-red-500 text-sm">Data belum ada, tekan + untuk mengisi data!</p>`
+    }
+
+    function toggleMainSection()
+    {
+      if(state.expenses.length === 0){
+        renderEmptyState()
+
+        searchWrapper.classList.add("hidden")
+        tableWrapper.classList.add("hidden")
+        totalExpenseText.classList.add("hidden")
+        select.classList.add("hidden")
+        emptyMessage.classList.remove("hidden")
+      }else{
+        searchWrapper.classList.remove("hidden")
+        tableWrapper.classList.remove("hidden")
+        totalExpenseText.classList.remove("hidden")
+        select.classList.remove("hidden")
+        emptyMessage.classList.add("hidden")
+      }
+    }
+
+    function openModalAddData()
+    {
+      modalAddData.classList.remove("pointer-events-none")
+      modalAddData.classList.remove("opacity-0")
+
+      modalContent.classList.remove("scale-95")
+      modalContent.classList.add("scale-100")
+
+      suggestions.classList.add("hidden")
+      inputSearch.value = ""
+      document.body.classList.add("overflow-hidden")
+
+      name.focus()
+    }
+
+    function hideModalAddData()
+    {
+      modalAddData.classList.add("opacity-0")
+
+      modalContent.classList.remove("scale-100")
+      modalContent.classList.add("scale-95")
+      document.body.classList.remove("overflow-hidden")
+
+      setTimeout(() => {
+        modalAddData.classList.add("pointer-events-none")
+      }, 300);
+    }
+
+    function resetModal()
+    {
+      name.value = ""
+      category.value = ""
+      amount.value = ""
+
+      document.querySelectorAll("[id^='text-error']").forEach(el => {
+        el.textContent = ""
+      });
+    }
+
+    function setModeAdd()
+    {
+      mode = "add"
+      modalAddTitle.textContent = "Add Expense"
+      resetModal()
+    }
+
+    function setModeEdit(data)
+    {
+      mode = "edit"
+      modalAddTitle.textContent = "Edit Expense"
+      
+      editId = data.id
+      name.value = data.name
+      category.value = data.category
+
+      rawAmount = data.amount
+      amount.value = new Intl.NumberFormat("id-ID").format(data.amount)
+    }
+
+    function validateAddData(data)
+    {
+      let error = {}
+
+      if(!data.name)
+      {
+        error.name = "Nama tidak boleh kosong!"
+      }
+      if(!data.category)
+      {
+        error.category = "Category tidak boleh kosong!"
+      }
+      if(data.amount === "")
+      {
+        error.amount = "Amount tidak boleh kosong!"
+      }else if(Number(data.amount) <= 0)
+      {
+        error.amount = "Amount tidak boleh negarif!"
+      }else if(Number.isNaN(data.amount))
+      {
+        error.amount = "Amount harus berupa angka!"
+      }
+
+      return error;
+    }
+
+    function renderErrorValidation(errors)
+    {
+      Object.entries(errors).forEach(([key, message]) => {
+        const el = document.getElementById(`text-error-${key}`)
+        if(el) el.textContent = message
+      })
+    }
+
+    function generateId(currentState)
+    { 
+      return currentState.expenses.length ? Math.max(...currentState.expenses.map(e => e.id)) + 1 : 1
+    }
+
+    function addExpense(currentState, name, category, amount)
+    {
+      const id = generateId(currentState)
+      const newExpense = {id, name, category, amount}
+      const newState = {...currentState, expenses: [newExpense, ...currentState.expenses]}
+      return newState
+    }
+
+    function updateExpense(currentState, id, name, category, amount)
+    {
+      return{
+        ...currentState,
+        expenses: currentState.expenses.map(e => e.id === id ? {...e, name, category, amount} : e)
+      }
+    }
+    
+    function deleteExpense(currentState, id)
+    {
+      return{
+        ...currentState,
+        expenses: currentState.expenses.filter(e => e.id !== id)
+      }
+    }
+
+    function setState(newState)
+    {
+      state = newState
+      saveToLocalStorage(state)
+    }
+
+    function saveToLocalStorage(currentState)
+    {
+      localStorage.setItem("expenses", JSON.stringify(currentState))
+    }
+
+    function renderTable(data)
+    {
+      const startIndex = (uiState.page - 1) * uiState.limit
+      let html = ""
+      data.forEach((e, i) => {
+        html += `
+          <tr class="transition-colors duration-1000 ${e.id === lastAddedId ? "bg-gray-100" : ""} ${e.id === lastEditId ? "bg-gray-100" : ""}">
+            <td>${startIndex + i + 1}</td>
+            <td class="whitespace-nowrap">${e.name}</td>
+            <td>${e.category}</td>
+            <td>${new Intl.NumberFormat("id-ID").format(e.amount)}</td>
+            <td class="whitespace-nowrap">
+              <button data-id="${e.id}" class="edit bg-green-500 py-0.5 px-2 text-white rounded hover:bg-green-600">Edit</button>
+              <button data-id="${e.id}" class="delete bg-red-500 hover:bg-red-600 text-white rounded py-0.5 px-2 ml-2">Delete</button>
+            </td>
+          </tr>
+        `
+      })
+
+      tbodyData.innerHTML = html
+    }
+
+    function renderTotalExpenses(data)
+    {
+      let total = data.reduce((sum, cValue) => {
+        return sum += cValue.amount
+      }, 0)
+
+      if(data.length > 0)
+      {
+        total = total
+      }else{
+        total = 0
+      }
+
+      totalExpenses.textContent = new Intl.NumberFormat("id-ID").format(total)
+    }
+
+    function paginateData(data, page, limit)
+    {
+      const start = (uiState.page - 1) * uiState.limit
+      const end = start + uiState.limit
+
+      return data.slice(start, end)
+    }
+
+    function ensureValidPage(data)
+    {
+      const totalPages = Math.ceil(data.length / uiState.limit)
+      if(uiState.page > totalPages) uiState.page = totalPages || 1
+      return totalPages
+    }
+
+    function renderPagination(totalPages)
+    {
+      if(totalPages <= 1){
+        pagination.innerHTML = ""
+        return
+      }
+
+      let options = ""
+
+      for(let i = 1; i <= totalPages; i++)
+      {
+        options += `<option value="${i}" ${i === uiState.page ? "selected" : ""}>${i}</option>`
+      }
+
+      const isFirst = uiState.page === 1
+      const isLast = uiState.page === totalPages
+
+      pagination.innerHTML = `
+        <button id="prevPage" class="text-sm md:text-base text-white rounded px-2 py-1 ${isFirst ? "bg-black/40 cursor-not-allowed" : "bg-black/80 hover:bg-black cursor-pointer"}">Prev</button>
+        
+        <div class="bg-white rounded overflow-hidden">
+        <select id="pageSelect" class="text-sm md:text-base px-2 py-1 rounded cursor-pointer">${options}</select>
+        <span class="text-sm md:text-base py-1 px-2 bg-gray-100">/ ${totalPages}</span>
+        </div>
+
+        <button id="nextPage" class="text-sm md:text-base text-white rounded px-2 py-1 ${isLast ? "bg-black/40 cursor-not-allowed" : "bg-black/80 hover:bg-black cursor-pointer"} cursor-pointer">Next</button>
+      ` 
+    }
+
+    function renderHighlighted()
+    {
+      if(lastAddedId !== null && !addTimeOut)
+      {
+        addTimeOut = setTimeout(() => {
+          lastAddedId = null
+          addTimeOut = null
+          renderApp()
+        }, 2000);
+      }
+
+      if(lastEditId !== null && !editTimeOut)
+      {
+        editTimeOut = setTimeout(() => {
+          lastEditId = null
+          editTimeOut = null
+          renderApp()
+        }, 2000);
+      }
+    }
+
+    function toggleDataFiltered(data)
+    {
+      if(data.length === 0)
+      {
+        tableWrapper.classList.add("hidden")
+        totalExpenseText.classList.add("hidden")
+        emptyMessage.classList.remove("hidden")
+        emptyMessage.innerHTML =  `<p class="text-center italic text-red-500 text-sm">Data tidak ada!</p>`
+      }else{
+        tableWrapper.classList.remove("hidden")
+        totalExpenseText.classList.remove("hidden")
+        emptyMessage.classList.add("hidden")
+        emptyMessage.innerHTML = ""
+      }
+    }
+
+    function getProcessedData(state, uiState)
+    {
+      const filtered = filterData(state.expenses, uiState)
+      ensureValidPage(filtered)
+      const paginated = paginateData(filtered, uiState.page, uiState.limit)
+
+      return{
+        filtered, 
+        paginated
+      }
+    }
+
+    function renderApp()
+    {
+      if(state.expenses.length === 0){
+        renderEmptyState()
+        return
+      }
+      
+      const {filtered, paginated} = getProcessedData(state, uiState)
+      
+      const totalPages = Math.ceil(filtered.length / uiState.limit)
+      renderCategory()
+
+      toggleDataFiltered(filtered)
+      
+      renderTable(paginated)
+      renderTotalExpenses(filtered)
+      renderPagination(totalPages)
+
+      renderHighlighted()
+    }
+
+    function handleSaveData(currentState)
+    {
+      let data = {}
+
+      const nameValue = name.value.trim()
+      const categoryValue = category.value.trim()
+      const amountValue = rawAmount;
+
+      data.name = nameValue
+      data.category = categoryValue
+      data.amount = amountValue
+
+      const errors = validateAddData(data)
+
+      if(Object.keys(errors).length !== 0)
+      {
+        renderErrorValidation(errors)
+        return
+      }
+
+      data.amount = Number(data.amount)
+
+      if(mode === "add"){
+        const newState = addExpense(currentState, data.name, data.category, data.amount)
+        lastAddedId = newState.expenses[0].id
+        setState(newState)
+
+        Swal.fire({
+          title: "success",
+          text: "Data berhasil di tambahkan",
+          icon: "success",
+          timer: 1500
+        })
+      }else if(mode === "edit"){
+        const newState = updateExpense(state, editId, data.name, data.category, data.amount)
+        lastEditId = editId
+        setState(newState)
+
+        Swal.fire({
+          title: "success",
+          text: "Data berhasil di perbaharui",
+          icon: "success",
+          timer: 1500
+        })
+      }
+
+      toggleMainSection()
+      renderApp()
+      hideModalAddData()
+    }
+
+    function handleDeleteData(currentState, id)
+    {
+      Swal.fire({
+        title: "Yakin hapus data ini?",
+        text: "Data tidak bisa dikembalikan.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, hapus",
+        cancelButtonText: "Cancel"
+      }).then((result) => {
+        if(result.isConfirmed){
+          const newState = deleteExpense(currentState, id)
+          
+          setState(newState)
+          
+          const {filtered} = getProcessedData(newState, uiState)
+          if(filtered.length === 0)
+          {
+            uiState.keyword = ""
+            uiState.category = ""
+          }
+
+          Swal.fire({
+            title: "Success",
+            text: "Data berhasil di hapus",
+            icon: "success",
+            timer: 1500
+          })
+          
+          toggleMainSection()
+          renderApp()
+          hideModalAddData()
+        }
+      })
+    }
+
+    function toggleXSearch(inputValue)
+    {
+      if(inputValue.length === 0)
+      {
+        xSearch.classList.add("hidden")
+        uiState.keyword = ""
+        activeIndex = -1
+        suggestions.classList.add("hidden")
+        ul.innerHTML = ""
+      }else{
+        xSearch.classList.remove("hidden")
+      }
+    }
+
+    function filterData(data, uiState)
+    {
+      return data.filter(e => {
+        const matchKeyword = uiState.keyword === "" || e.name.toLowerCase().includes(uiState.keyword.toLowerCase())
+
+        const matchCategory = uiState.category === "" || e.category === uiState.category
+
+        return matchKeyword && matchCategory
+      })
+    }
+
+    function renderSuggestions(currentState)
+    {
+      const inputSearchValue = inputSearch.value.trim()
+
+      uiState.keyword = inputSearchValue
+
+      toggleXSearch(inputSearchValue)
+
+      if(inputSearchValue.length === 0)
+      {
+        suggestions.classList.add("hidden")
+        return
+      }
+
+      const filteredExpenses = filterData(currentState.expenses, uiState)
+
+      let html = ""
+      
+      if(inputSearchValue.length > 0)
+      {
+        if(filteredExpenses.length === 0){
+          html += `<li class="text-sm md:text-base no-data text-red-500 text-sm italic px-2 py-1 pointer-events-none">*Data tidak ditemukan!*</li>`
+        }else{
+          filteredExpenses.forEach(e => {
+            const regex = new RegExp(`(${inputSearchValue})`, "gi")
+            const highlighted = e.name.replace(regex, "<b>$1</b>")
+            html += `
+              <li class="text-sm md:text-base hover:bg-gray-200 rounded cursor-pointer py-1 px-2">${highlighted}</li>
+            `
+          })
+        }
+
+        ul.innerHTML = html
+        suggestions.classList.remove("hidden")
+      }
+    }
+
+    function handleSearch(items)
+    {
+      let value = inputSearch.value.trim()
+      if(activeIndex >= 0 && items[activeIndex])
+      {
+        value = items[activeIndex].textContent
+      }
+
+      inputSearch.value = value
+      uiState.keyword = value
+      uiState.page = 1
+
+      activeIndex = -1
+      suggestions.classList.add("hidden")
+
+      renderApp()
+    }
+
+    function renderCategory()
+    {
+      select.length = 1
+      const filteredCategory = state.expenses.map(e => e.category).filter((c, i, arr) => arr.indexOf(c) === i)
+      filteredCategory.forEach(c => {
+        const option = document.createElement("option")
+        option.value = c
+        option.textContent = c
+
+        select.append(option)
+      })
+
+      select.value = uiState.category
+    }
+
+    state = loadDataFromLS(state)
+
+    toggleMainSection()
+    renderCategory()
+    renderApp()
+
+    xmodalAddData.addEventListener("click", () => {
+      hideModalAddData()
+    })
+
+    modalAddData.addEventListener("click", (e) => {
+      if(!modalContent.contains(e.target))
+      {
+        hideModalAddData()
+      }
+    })
+
+    addData.addEventListener("click", () => {
+      openModalAddData()
+      setModeAdd()
+    })
+
+    saveBtn.addEventListener("click", () => {
+      handleSaveData(state)
+    })
+    
+    tbodyData.addEventListener("click", (e) => {
+      const btnEdit = e.target.closest(".edit")
+      if(btnEdit){
+        const id = Number(btnEdit.dataset.id)
+        const expenseEdit = state.expenses.find(e => e.id === id)
+
+        openModalAddData()
+        setModeEdit(expenseEdit)
+      }
+
+      const btnDelete = e.target.closest(".delete")
+      if(btnDelete){
+        const id = Number(btnDelete.dataset.id)
+        if(!id) return
+
+        handleDeleteData(state, id)
+      }
+    })
+
+    xSearch.addEventListener("click", () => {
+      inputSearch.value = ""
+
+      uiState.keyword = ""
+      uiState.category = ""
+      uiState.page = 1
+      activeIndex = -1
+
+      ul.innerHTML = ""
+      select.value = ""
+
+      suggestions.classList.add("hidden")
+      xSearch.classList.add("hidden")
+      inputSearch.focus()
+
+      renderApp()
+    })
+
+    inputSearch.addEventListener("keydown", (e) => {
+      if(suggestions.classList.contains("hidden") || inputSearch.value.trim() === "") return;
+
+      if(e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter" && e.key !== "Escape") return
+
+      const items = ul.querySelectorAll("li:not(.no-data)")
+      if(items.length === 0) return
+
+      if(inputSearch.value.trim() === "")
+      {
+        activeIndex = -1
+      }
+
+      if(e.key === "Enter"){
+        handleSearch(items)
+      }
+
+      if(e.key === "ArrowDown")
+      {
+        activeIndex++
+        if(activeIndex >= items.length) activeIndex = 0
+      }
+
+      if(e.key === "ArrowUp")
+      {
+        activeIndex--
+        if(activeIndex < 0) activeIndex = items.length - 1
+      }
+
+      if(e.key === "Escape")
+      {
+        suggestions.classList.add("hidden")
+      }
+
+      items.forEach(item => item.classList.remove("bg-gray-200"))
+
+      const activeItem = items[activeIndex]
+      if(!activeItem) return
+      activeItem.classList.add("bg-gray-200")
+      activeItem.scrollIntoView({
+        block: "nearest"
+      })
+
+      inputSearch.value = activeItem.textContent
+    })
+
+    inputSearch.addEventListener("input", () => {
+      if(inputSearch.value.trim() === "")
+      {
+        const value = inputSearch.value.trim()
+        toggleXSearch(value)
+        renderApp()
+      }else{
+        activeIndex = -1
+        renderSuggestions(state)
+      }
+    })
+    
+    suggestions.addEventListener("click", (e) => {
+      const li = e.target.closest("li")
+      inputSearch.value = li.textContent
+      inputSearch.focus()
+      suggestions.classList.add("hidden")
+    })
+
+    searchIcon.addEventListener("click", () => {
+      const items = ul.querySelectorAll("li:not(.no-data)")
+      handleSearch(items)
+    })
+
+    select.addEventListener("change", () => {
+      uiState.category = select.value
+      uiState.page = 1
+      renderApp()
+    })
+
+    document.addEventListener("click", (e) => {
+      if(!searchWrapper.contains(e.target))
+      {
+        suggestions.classList.add("hidden")
+      }
+    })
+
+    pagination.addEventListener("click", (e) => {
+      if(e.target.tagName === "SELECT") return;
+
+      const {filtered} = getProcessedData(state, uiState)
+      const totalPages = Math.ceil(filtered.length / uiState.limit)
+
+      if(e.target.id === "prevPage" && uiState.page > 1) uiState.page--
+
+      if(e.target.id === "nextPage" && uiState.page < totalPages) uiState.page++
+
+      renderApp()
+    })
+
+    pagination.addEventListener("change", (e) => {
+      if(e.target.id === "pageSelect")
+      {
+        uiState.page = Number(e.target.value)
+        renderApp()
+      }
+    })
+
+  </script>
+</body>
+</html>
